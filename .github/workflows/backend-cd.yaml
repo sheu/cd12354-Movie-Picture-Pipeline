@@ -1,4 +1,4 @@
-name: Backend CD
+name: Backend Continuous Deployment
 
 on:
   push:
@@ -26,6 +26,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install pipenv
         run: pip install pipenv
       - name: Install dependencies
@@ -45,6 +52,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install pipenv
         run: pip install pipenv
       - name: Install dependencies
