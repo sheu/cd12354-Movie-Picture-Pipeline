@@ -10,7 +10,7 @@ on:
 
 env:
   AWS_REGION: eu-central-1
-  ECR_REPO: ${{ secrets.ECR_BACKEND_REPO }}
+  ECR_REPO: ${{ vars.ECR_BACKEND_REPO }}
   EKS_CLUSTER: sheu-cluster
 
 jobs:
