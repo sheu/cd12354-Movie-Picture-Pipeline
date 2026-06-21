@@ -1,5 +1,81 @@
 # Movie Picture Pipeline
 
+## Project Implementation
+
+This project implements fully automated CI/CD pipelines using GitHub Actions for a Movie Picture catalog application. The application consists of a React frontend and a Flask backend, both deployed to an Amazon EKS Kubernetes cluster.
+
+---
+
+## Completed Tasks
+
+### 1. CI Pipelines (GitHub Actions)
+
+#### Frontend CI — `.github/workflows/frontend-ci.yaml`
+- Triggers on pull requests to `main` (paths: `starter/frontend/**`) and manually via `workflow_dispatch`
+- **Lint** and **Test** jobs run in parallel
+- **Build** job runs only after both pass (`needs: [lint, test]`), builds a Docker image
+- All jobs include npm dependency caching (`actions/cache@v3`)
+
+#### Backend CI — `.github/workflows/backend-ci.yaml`
+- Triggers on pull requests to `main` (paths: `starter/backend/**`) and manually
+- **Lint** and **Test** jobs run in parallel using `pipenv`
+- **Build** job runs only after both pass, builds a Docker image
+- All jobs include pip dependency caching
+
+### 2. CD Pipelines (GitHub Actions)
+
+#### Frontend CD — `.github/workflows/frontend-cd.yaml`
+- Triggers on push to `main` and manually
+- Lint → Test → Build & Push → Deploy (sequential with `needs`)
+- Docker image built with `REACT_APP_MOVIE_API_URL` build arg, tagged with `github.sha`
+- Image pushed to Amazon ECR using `aws-actions/amazon-ecr-login@v1`
+- Deployed to EKS via `kustomize`
+
+#### Backend CD — `.github/workflows/backend-cd.yaml`
+- Triggers on push to `main` and manually
+- Lint → Test → Build & Push → Deploy (sequential with `needs`)
+- Docker image tagged with `github.sha` and pushed to Amazon ECR
+- Deployed to EKS via `kustomize`
+
+### 3. Infrastructure
+
+| Resource | Details |
+|---|---|
+| EKS Cluster | `sheu-cluster`, `eu-central-1` |
+| Frontend ECR | `650797337771.dkr.ecr.eu-central-1.amazonaws.com/frontend` |
+| Backend ECR | `650797337771.dkr.ecr.eu-central-1.amazonaws.com/backend` |
+| IAM User | `github-action-user` with ECR and EKS permissions |
+
+### 4. Fixes Made
+
+| Issue | Fix Applied |
+|---|---|
+| `uwsgi==2.0.21` fails to compile with GCC 15 on Alpine | Added `ENV CFLAGS="-Wno-error=incompatible-pointer-types"` to backend `Dockerfile` |
+| `github-action-user` had no ECR/EKS permissions | Attached `AmazonEC2ContainerRegistryFullAccess` and EKS policies via AWS CLI |
+| GitHub Actions variable values had leading spaces | Removed spaces; quoted `--build-arg` value in frontend CD workflow |
+| Workflow files used `.yml` extension | Renamed all 4 workflow files to `.yaml` per rubric |
+| Workflow names were abbreviated | Updated to full names: "Frontend Continuous Integration", etc. |
+| Missing dependency cache steps | Added `actions/cache@v3` to every lint/test/build job |
+| Single EKS node had too many pods | Scaled node group from 1 → 2 nodes |
+
+---
+
+## Verification Screenshots
+
+### Backend API — `/movies` endpoint returning movie data
+
+![Backend API returning movies JSON](backend-screenshot.png)
+
+The backend Flask API is accessible via its AWS Load Balancer URL and returns a JSON list of movies: Top Gun: Maverick, Sonic the Hedgehog, and A Quiet Place. This confirms the backend is deployed and running correctly on the EKS cluster.
+
+### Frontend Application — Movie List UI
+
+![Frontend React app showing Movie List](Untitled.png)
+
+The React frontend displays the Movie List fetched from the backend API. Clicking a movie shows its details. This confirms the frontend is deployed, the `REACT_APP_MOVIE_API_URL` environment variable was correctly passed at build time, and the frontend-to-backend communication is working end-to-end.
+
+---
+
 You've been brought on as the DevOps resource for a development team that manages a web application that is a catalog of Movie Picture movies. They're in dire need of automating their development workflows in hopes of accelerating their release cycle. They'd like to use Github Actions to automate testing, building and deploying their applications to an existing Kubernetes cluster.
 
 The team's project is comprised of 2 applications.
